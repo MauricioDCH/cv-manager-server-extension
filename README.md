@@ -14,6 +14,35 @@ go get google.golang.org/api/option
 
 # To run the server.
 
+Before running the server make sure the database is working.
+
+Then, execute the command below.
 ```bash
 go run server.go
+```
+
+The server listens on port 5522.
+
+If you whant to send some POST, you can execute in POSTMAN.
+
+```bash
+http://localhost:5522/submit-data
+```
+
+In the body of the post, use this example.
+```json
+{
+    "inputs": [
+        {
+            "name": "email",
+            "type": "text"
+        },
+        {
+            "name": "password",
+            "type": "pass"
+        }
+    ],
+    "email": "ana.gomez@email.com"
+}
+
 ```
