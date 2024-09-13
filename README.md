@@ -12,6 +12,12 @@ go get github.com/google/generative-ai-go/genai
 go get google.golang.org/api/option
 ```
 
+If there are some error with dependences, please execute.
+```bash
+go mod tidy
+```
+
+
 # To run the server.
 
 Before running the server make sure the database is working.
