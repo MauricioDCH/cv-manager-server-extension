@@ -10,6 +10,7 @@ go get github.com/jackc/pgx/v5
 go get github.com/jackc/pgx/v5/stdlib
 go get github.com/google/generative-ai-go/genai
 go get google.golang.org/api/option
+go get github.com/joho/godotenv
 ```
 
 If there are some error with dependences, please execute.

@@ -2,7 +2,9 @@ package doQueriesToGemini
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"regexp"
 	"strings"
 
 	"github.com/google/generative-ai-go/genai"
@@ -12,10 +14,11 @@ import (
 // y también están en la lista de campos disponibles.
 func FirstQuery(ctx context.Context, model *genai.GenerativeModel, jsonDataInputs, jsonFieldsData string) (string, error) {
 	// Construir el mensaje para la consulta
-	message1_part_1 := "Necesito que me digas cuales de estos inputs " + jsonDataInputs
-	message1_part_2 := " necesitan un valor y también están en esta otra lista " + jsonFieldsData
-	message1_part_3 := " para poder llenarlos, no es necesario una pregunta larga."
-	message1 := message1_part_1 + message1_part_2 + message1_part_3
+	message1 := fmt.Sprintf(
+		"Necesito saber qué inputs de la siguiente lista requieren un valor: %s. "+
+			"Estos inputs deben estar presentes en esta otra lista de campos disponibles: %s. "+
+			"Por favor, enumera solo los inputs que coincidan, sin texto adicional.",
+		jsonDataInputs, jsonFieldsData)
 
 	// Realizar la consulta a Gemini
 	responseInputs, err := model.GenerateContent(ctx, genai.Text(message1))
@@ -31,14 +34,16 @@ func FirstQuery(ctx context.Context, model *genai.GenerativeModel, jsonDataInput
 // SecondQuery realiza la segunda consulta a Gemini para obtener una consulta SQL específica
 func SecondQuery(ctx context.Context, model *genai.GenerativeModel, tableToQuery, responseInputsForQuery, email string) (string, error) {
 	// Construir el mensaje para la consulta SQL
-	message2_part_1 := "Necesito una query SQL para PostgreSQL. La consulta debe ser para la tabla "
-	message2_part_2 := tableToQuery
-	message2_part_3 := " SÓLO con los campos que coincidan con la respuesta y el id: " + responseInputsForQuery
-	message2_part_4 := ", y debe buscar el correo "
-	message2_part_5 := email
-	message2_part_6 := ". Por favor, devuelve SOLO la consulta SQL completa usando los datos en español, sin ningún formato adicional o texto extra."
-	message2 := message2_part_1 + message2_part_2 + message2_part_3 + message2_part_4 + message2_part_5 + message2_part_6
 
+	message2 := fmt.Sprintf(
+		"Necesito una consulta SQL para PostgreSQL. La consulta debe ser para la tabla %s "+
+			" y los campos para la petición a la base de datos debe ser SOLO los campos que muestre esta respuesta: %s."+
+			" y el id. La búsqueda debe ser para el correo %s"+
+			"Devuelveme SOLO la consulta SQL completa sin ningún formato adicional ni texto extra. OJO: Los campos de la query deben ser los ColumnField del json llamado inputsTabla.",
+		tableToQuery, responseInputsForQuery, email)
+
+	/*
+	 */
 	// Realizar la consulta a Gemini
 	mergeForQuery, err := model.GenerateContent(ctx, genai.Text(message2))
 	if err != nil {
@@ -91,17 +96,16 @@ func returnResponseQuery(resp *genai.GenerateContentResponse) string {
 	fullResponse := responseText.String()
 
 	// Limpiar la respuesta para dejar solo la consulta SQL
-	// Eliminar cualquier texto no deseado antes y después de la consulta
 	cleanedResponse := strings.TrimSpace(fullResponse)
 
-	// Buscar la parte de la consulta SQL
-	lines := strings.Split(cleanedResponse, "\n")
-	for _, line := range lines {
-		if strings.HasPrefix(strings.TrimSpace(line), "SELECT") {
-			return strings.TrimSpace(line)
-		}
+	// Usar una expresión regular para buscar una consulta SQL en la respuesta
+	re := regexp.MustCompile(`(?i)SELECT\s+.*?\s+FROM\s+\S+.*;`)
+	match := re.FindString(cleanedResponse)
+
+	// Devolver la consulta SQL si se encuentra; de lo contrario, devolver la respuesta completa
+	if match != "" {
+		return match
 	}
 
-	// Si no se encuentra la consulta SQL específica, devolver la respuesta completa
 	return cleanedResponse
 }
