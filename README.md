@@ -18,10 +18,12 @@ If there are some error with dependences, please execute.
 go mod tidy
 ```
 
-
 # To run the server.
 
+
 Before running the server make sure the database is working.
+
+Then, change the .env_example file name to .env and introduce the credentials.
 
 Then, execute the command below.
 ```bash
